@@ -73,6 +73,20 @@ function SpawnPropFromTable( index , CurrentPropTable , Owner )
 
  	if Loading["entity"] != "prop_physics" then SpawnedProp:Spawn() end
 
+	local BGTable = Loading["bodygroup"]
+
+	if istable( BGTable ) then
+		
+			for k, v in pairs( BGTable ) do
+			
+				if istable( v ) then
+					SpawnedProp:SetBodygroup( v[1] , v[2] )
+				end
+			end
+	end
+
+	
+
 	SpawnedProp:PhysicsInit( SOLID_VPHYSICS )      -- Make us work with physics,
 	SpawnedProp:SetMoveType( MOVETYPE_VPHYSICS )   -- after all, gmod is a physics
 	SpawnedProp:SetSolid( SOLID_VPHYSICS )         -- Toolbox
