@@ -576,4 +576,4 @@ MakePropsFromTable(proptable_windows,true)
 
 end
 
-reinit_issa()
+timer.Simple(15,function() ISSA() reinit_issa() end)
