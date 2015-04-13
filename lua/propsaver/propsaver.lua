@@ -46,6 +46,10 @@ function SpawnPropFromTable( index , CurrentPropTable , Owner )
 
 
 	Loading = CurrentPropTable[index]
+
+	if Loading["entity"] == "prop_ragdoll" then
+		Loading["entity"] = "prop_physics"
+	end
 	
 	SpawnedProp = ents.Create( Loading["entity"] )
  	
@@ -143,7 +147,7 @@ function DefineProp( prop )
 	local PropMat = tostring( prop:GetMaterial() )
 	local PropColor = table.ToString( prop:GetColor() )
 	
-	print( '{ ["entity"] = "'.. PropClass ..'" , ["model"] = "' .. PropModel .. '" , ["pos"] = Vector(' .. PropPos .. '), ["ang"] = Angle('.. PropAng ..'), ["owner"] = nil , ["static"] = true , ["material"] = "' .. PropMat .. '" , ["color"] = White }, ')
+	print( '{ ["entity"] = "'.. PropClass ..'" , ["model"] = "' .. PropModel .. '" , ["pos"] = Vector(' .. PropPos .. '), ["ang"] = Angle('.. PropAng ..'), ["owner"] = nil , ["static"] = true , ["material"] = "' .. PropMat .. '" , ["color"] = color_white }, ')
 	
 end
 
