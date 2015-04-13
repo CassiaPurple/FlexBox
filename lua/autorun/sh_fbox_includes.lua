@@ -1,11 +1,14 @@
-if SERVER then
+--[[
+HOW TO SHARED INCLUDE
+---------------------
+1. AddCSLuaFile('path') in server
+2. include'path' in both
+]]--
 
-include'user4992/user_scoreboard.lua'
+if SERVER then
 
 end
 
 if CLIENT then
-
-include'user4992/user_scoreboard.lua'
 
 end

@@ -1,9 +1,6 @@
 -- Scoreboard
 -- by user4992
---
--- run on shared
 
-easylua.StartEntity("fb_user_scoreboard")
 
 ENT.Type = "anim"
 ENT.Base = "base_gmodentity"
@@ -297,9 +294,4 @@ function ENT:Think()
 end
 
 end
-
-
-
-easylua.EndEntity()
-
 
