@@ -44,3 +44,5 @@ function ISSATech()
 	ISSAUptime:SetSolid( SOLID_NONE ) 
 	
 end
+
+ISSATech() 
