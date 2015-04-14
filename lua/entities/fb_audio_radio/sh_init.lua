@@ -252,6 +252,4 @@ function ENT:OnRemove()
 			v:SendLua([[if IsValid(globalstation)then globalstation:Stop()end]])
 	end	
 end
-
-
 end
