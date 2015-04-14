@@ -1,6 +1,7 @@
 -- Scoreboard
 -- by user4992
 
+AddCSLuaFile()
 
 ENT.Type = "anim"
 ENT.Base = "base_gmodentity"
