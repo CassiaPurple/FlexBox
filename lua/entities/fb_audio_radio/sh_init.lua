@@ -1,4 +1,5 @@
 AddCSLuaFile()
+easylua.StartEntity("fb_audio_radio")
 
 ENT.Type = "anim"
 ENT.Base = "base_gmodentity"
@@ -8,17 +9,20 @@ ENT.Author			= "Ghost"
 ENT.Contact			= "Don't"
 ENT.Purpose			= "Exemplar material"
 ENT.Instructions	= "Use with care. Always handle with gloves."
-ENT.Model = "models/props_lab/citizenradio.mdl"
+ENT.Model = "models/props/de_inferno/tv_monitor01.mdl"
 ENT.Spawnable = true
 ENT.AdminSpawnable = true
 ENT.Value = 10
+ENT.URL = ""
+ENT.Range = 1500
+ENT.Levels = {0,0}
 
 if CLIENT then
  
 surface.CreateFont("FRadio_ScreenFont",
 	{
 		font = "Roboto",
-		size = 16,
+		size = 18,
 		weight = 500,
 		antialias = true,
 		outline = false
@@ -46,24 +50,41 @@ surface.CreateFont("FRadio_ScreenFontSmaller",
 
  
 function ENT:Play(url)
-	
+self.URL = url
+if !string.find(url:lower(),".ogg",1,true) then
 local pos = self:GetPos()
 sound.PlayURL(url,
 		"3d noblock",
 		function(station,_,error)
 			if IsValid(station) then
+				
 				station:SetPos(self:GetPos())
 				station:Play()
 				
-				globalstation = station	
+				globalstations[self:EntIndex()] = station	
 			end
 			print(error)
 	end)
 	
+else
+sound.PlayURL(url,
+		"noblock",
+		function(station,_,error)
+			if IsValid(station) then
+
+				station:Play()
+				
+				globalstations[self:EntIndex()] = station	
+			end
+			print(error)
+	end)
+	
+end	
+
 end
 
 function ENT:Pause()
-	
+	local globalstation = globalstations[self:EntIndex()]
 	if IsValid(globalstation) then
 		if globalstation:GetState() != GMOD_CHANNEL_PAUSED then
 		globalstation:Pause()
@@ -73,7 +94,7 @@ function ENT:Pause()
 end
 
 function ENT:Unpause()
-	
+	local globalstation = globalstations[self:EntIndex()]
 	if IsValid(globalstation) then
 		if globalstation:GetState() == GMOD_CHANNEL_PAUSED then
 			globalstation:Play()
@@ -83,7 +104,7 @@ function ENT:Unpause()
 end
 
 function ENT:Stop()
-	
+	local globalstation = globalstations[self:EntIndex()]
 	if IsValid(globalstation) then
 		globalstation:Stop()
 		globalstation = nil
@@ -92,41 +113,9 @@ function ENT:Stop()
 end
  
 function ENT:GetTexts()
-	local function CustomNiceTime(seconds)
-		if ( seconds == nil ) then return "a few seconds" end
 
-	if ( seconds < 60 ) then
-		local t = math.floor( seconds )
-		return "00:" .. t
-	end
-
-	if ( seconds < 60 * 60 ) then
-		local t = math.floor( seconds / 60 )
-		local tt = math.floor( seconds / 60 ) - seconds
-		return t .. ":" .. tt
-	end
-
-	if ( seconds < 60 * 60 * 24 ) then
-		local t = math.floor( seconds / (60 * 60) )
-		return t
-	end
-
-	if ( seconds < 60 * 60 * 24 * 7 ) then
-		local t = math.floor( seconds / (60 * 60 * 24) )
-		return t
-	end
-	
-	if ( seconds < 60 * 60 * 24 * 7 * 52 ) then
-		local t = math.floor( seconds / (60 * 60 * 24 * 7) )
-		return t
-	end
-
-	local t = math.floor( seconds / (60 * 60 * 24 * 7 * 52) )
-	return t 
-end
-
-	
-	if type(globalstation) != "IGModAudioChannel" then return "ERROR", "XX:XX / XX:XX" end
+	local globalstation = globalstations[self:EntIndex()]
+	if type(globalstation) != "IGModAudioChannel" then return "Not playing", "--:-- / --:--" end
 	if !IsValid(globalstation) then
 		return "Not playing", "--:-- / --:--"
 	end
@@ -137,9 +126,9 @@ end
 		elseif a == GMOD_CHANNEL_STOPPED then
 			return "Not playing", "--:-- / --:--"
 		elseif a == GMOD_CHANNEL_PLAYING then
-			return "Playing", CustomNiceTime(math.Round(globalstation:GetTime()/globalstation:GetPlaybackRate())) .. " / ??:??"
+			return "Playing", string.ToMinutesSeconds(math.Round(globalstation:GetTime()/globalstation:GetPlaybackRate())) .. " / ??:??"
 		elseif a == GMOD_CHANNEL_PAUSED then
-			return "Paused", CustomNiceTime(math.Round(globalstation:GetTime()/globalstation:GetPlaybackRate())) .. " / ??:??"
+			return "Paused", string.ToMinutesSeconds(math.Round(globalstation:GetTime()/globalstation:GetPlaybackRate())) .. " / ??:??"
 		end
 			
 	end	
@@ -159,24 +148,80 @@ function ENT:Draw()
 	local ang = self:GetAngles()
 	local texttop,textbottom = self:GetTexts()
 	local curfont = "FRadio_ScreenFont"
+	
+
 	ang:RotateAroundAxis(ang:Right(),90)
 	ang:RotateAroundAxis(ang:Forward(),180)
 	ang:RotateAroundAxis(ang:Up(),-90)
 	
-	cam.Start3D2D(pos+ang:Up()*9,ang,0.15)
-		local off = -104
-		local textcenter = (-42+120)/4.3
+	cam.Start3D2D(pos+ang:Up()*10.467,ang,0.15)
+		local off = -60
+		local ee = -92
+		local textcenter = ee / 4.5
+
+		local globalstation = globalstations[self:EntIndex()]
+		if IsValid(globalstation) then
+		local levels_l,levels_r 
+		levels_l,levels_r = globalstation:GetLevel()
+
+		local moff = -off
+		globallevels[self:EntIndex()] = {moff*1.7*levels_r,moff*1.7*levels_l}
+	else
+		globallevels[self:EntIndex()] =  {0,0}
+	end
+
+
+
+
+	local x,y = globallevels[self:EntIndex()][1],globallevels[self:EntIndex()][2]
+
+	local color_rainbow = HSVToColor((RealTime()*100)%360,1,1)
+
 		draw.RoundedBox(6,
-			-42, off,
-			120, 32,
-			color_white)
+			ee, off,
+			146, -off*1.7,
+			color_black)
+
+
+		draw.RoundedBox(0,
+			textcenter+2, off,
+			16, x,
+			color_rainbow)
+		draw.RoundedBox(0,
+			textcenter+6+16, off,
+			16, x*0.75,
+			color_rainbow)
+		draw.RoundedBox(0,
+			textcenter+(5+16)*2, off,
+			16, x*0.5,
+			color_rainbow)
+
+		draw.RoundedBox(0,
+			textcenter-18, off,
+			16, y,
+			color_rainbow)
+
+		draw.RoundedBox(0,
+			textcenter-18 - 4 - 16, off,
+			16, y*0.75,
+			color_rainbow)
+		draw.RoundedBox(0,
+			textcenter-18 - 4 - 16 - 4 - 16, off,
+			16, y*0.5,
+			color_rainbow)
+
 		draw.DrawText(
 		texttop,curfont,
-		textcenter,off + (16-draw.GetFontHeight(curfont)),Color(0,0,0),TEXT_ALIGN_CENTER)
+		textcenter,off/2.5 + (16-draw.GetFontHeight(curfont)),color_white,TEXT_ALIGN_CENTER)
 		draw.DrawText(
 		textbottom,"FRadio_ScreenFont",
-		textcenter,off+14,Color(0,0,0),TEXT_ALIGN_CENTER)
-	
+		textcenter,off/2.5+14,color_white,TEXT_ALIGN_CENTER)
+		
+		draw.DrawText(
+			"FRadio v1b",
+			"FRadio_ScreenFontSmall",
+			ee,off,color_white,TEXT_ALIGN_LEFT)
+
 	cam.End3D2D()
 
 
@@ -187,18 +232,38 @@ end
 
 function ENT:Initialize()
 	
- 	if CLIENT then globalstation = nil elseif SERVER then
+	
+ 	if CLIENT then 
+ 	if #ents.FindByClass("fb_audio_radio") > 1 then return end
+ 	if globalstations then
+ 		for k,v in pairs(globalstations) do
+ 			if IsValid(v) then v:Stop() v = nil end
+		end
+		
+		
+	end
+	globalstations = {}
+ 	if globallevels then
+ 		for k,v in pairs(globallevels) do
+ 			v = nil 
+		end
+		
+		
+	end
+	globallevels = {}	
+ elseif SERVER then
 
 	self:SetModel( self.Model )
+	self:SetModelScale(1.5)
 	self:PhysicsInit( SOLID_VPHYSICS )      -- Make us work with physics,
 	self:SetMoveType( MOVETYPE_VPHYSICS )   -- after all, gmod is a physics
 	self:SetSolid( SOLID_VPHYSICS )         -- Toolbox
-	self:SetCollisionGroup(COLLISION_GROUP_WORLD)
  	
         local phys = self:GetPhysicsObject()
 	if (phys:IsValid()) then
 		phys:Wake()
 	end
+	
 	
 end
 	
@@ -212,12 +277,38 @@ function ENT:Use( activator, caller )
     return
 end
  
+end
 function ENT:Think()
+	if SERVER then
     if IsValid(self) then
     	self:SetModel(self.Model)
     end
+    elseif CLIENT then
+    	local globalstation = globalstations[self:EntIndex()]
+    	local range = self.Range
+    	local vol = math.Clamp((range-self:GetPos():Distance(LocalPlayer():GetPos()))/range,0,1)
+ 	if IsValid(globalstation) then
+
+
+	else
+		
+	end
+	
+
+    	if IsValid(globalstation) then
+    		if !string.find(self.URL,".ogg",1,true) then
+    			globalstation:SetPos(self:GetPos())
+    			return end
+    		globalstation:SetVolume(vol)
+
+		end
+
+
+		
+	end
  
 end
+if SERVER then
 
 function ENT:Play(url)
 	
@@ -249,7 +340,10 @@ function ENT:Unpause()
 end
 function ENT:OnRemove()
 	for k,v in pairs(player.GetHumans()) do
-			v:SendLua([[if IsValid(globalstation)then globalstation:Stop()end]])
+			v:SendLua([[if IsValid(globalstations]] .. "[" .. self:EntIndex() .. "]" .. [[)then globalstations]] .. "[" .. self:EntIndex() .. "]" .. [[:Stop()end]])
 	end	
 end
+
+
 end
+easylua.EndEntity()
