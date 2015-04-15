@@ -1,3 +1,8 @@
+-- Dynamic sky
+-- by user4992
+--
+-- to be run on server
+
 
 function StartSky()
 
@@ -7,10 +12,14 @@ function StartSky()
 --	local FogTable =  ents.FindByClass("env_fog_controller")
 --	FogEnt =  FogTable[1]
 
+	local SunTable =  ents.FindByClass("env_sun")
+	SunEnt =  SunTable[1]
+	
 	RunConsoleCommand("sv_skyname", "painted")
 
-	timer.Create("SkyTime", 0.5, 0, function() SetupSky() end)
+	timer.Create("SkyTime", 0.2, 0, function() SetupSky() end)
 	timer.Start( "SkyTime" )
+	
 	
 end
 
@@ -23,12 +32,13 @@ function SetupSky( )
 		SkyBrightness = (SW.Time)
 	end
 	
-	SkyBrightness = ( SkyBrightness / 20 ) 
+--	SkyBrightness = ( SkyBrightness / 20 ) 
 	-- should be divided by 12
 	-- but increased for a bit more nighttime
 	
+	SunMod = SkyBrightness
 	
-	TimeMod = SkyBrightness
+	TimeMod = ( SkyBrightness / 20 ) 
 	NightMod = 1 - TimeMod
 	
 	if IsValid( SkyEnt ) then
@@ -49,6 +59,12 @@ function SetupSky( )
 --		render.FogColor( Vector(0.7 , 0.75 , 0.8) )
 --		render.FogMaxDensity( NightMod )
 --	end
+
+	if IsValid( SunEnt ) then
+		local SunVal = 30 + (SunMod * 20)
+		local SunAng = Angle( 0 , 0 , SunVal )
+		SunEnt:SetKeyValue( "sun_dir", tostring( SunAng:Right() ) )
+	end
 end
 
 function StopSky()
@@ -57,9 +73,11 @@ function StopSky()
 	SkyEnt:SetBottomColor(  Vector( 0.8 , 1 , 1 ) )	
 	SkyEnt:SetSunColor(  Vector( 0.2 , 0.1 , 0 ) )
 
+	SunEnt:SetKeyValue( "sun_dir", tostring( Angle( 0 , 0 , 220 ):Right() ) )
+
 --	render.FogMaxDensity( 0.1 )	
 		
 	timer.Stop( "SkyTime" )
 end
 
-StartSky()
+timer.Simple( 5 , function() StartSky() end)
