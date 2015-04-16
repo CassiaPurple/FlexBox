@@ -15,6 +15,7 @@ ENT.AdminSpawnable = true
 ENT.Value = 10
 ENT.URL = ""
 ENT.Range = 1500
+ENT.Volume = .7
 ENT.Levels = {0,0}
 
 if CLIENT then
@@ -23,7 +24,7 @@ surface.CreateFont("FRadio_ScreenFont",
 	{
 		font = "Roboto",
 		size = 18,
-		weight = 500,
+		weight = 700,
 		antialias = true,
 		outline = false
 	}
@@ -48,25 +49,23 @@ surface.CreateFont("FRadio_ScreenFontSmaller",
 )
  
 
- 
+function ENT:SetRange(range)
+	range = tonumber(range)
+	if range == nil then return end
+	self.Range = range
+end
+
+function ENT:SetVolume(vol)
+	vol = tonumber(vol)
+	if vol == nil then vol = 0 end
+	self.Volume = vol
+end
+
+
 function ENT:Play(url)
+self:Stop()
 self.URL = url
-if !string.find(url:lower(),".ogg",1,true) then
-local pos = self:GetPos()
-sound.PlayURL(url,
-		"3d noblock",
-		function(station,_,error)
-			if IsValid(station) then
-				
-				station:SetPos(self:GetPos())
-				station:Play()
-				
-				globalstations[self:EntIndex()] = station	
-			end
-			print(error)
-	end)
-	
-else
+
 sound.PlayURL(url,
 		"noblock",
 		function(station,_,error)
@@ -76,10 +75,10 @@ sound.PlayURL(url,
 				
 				globalstations[self:EntIndex()] = station	
 			end
+			if error != nil then
 			print(error)
+			end
 	end)
-	
-end	
 
 end
 
@@ -126,9 +125,13 @@ function ENT:GetTexts()
 		elseif a == GMOD_CHANNEL_STOPPED then
 			return "Not playing", "--:-- / --:--"
 		elseif a == GMOD_CHANNEL_PLAYING then
-			return "Playing", string.ToMinutesSeconds(math.Round(globalstation:GetTime()/globalstation:GetPlaybackRate())) .. " / ??:??"
+			return "Playing", string.ToMinutesSeconds(math.Round(globalstation:GetTime()/globalstation:GetPlaybackRate())) 
+			.. " / "
+			.. string.ToMinutesSeconds(math.Round(globalstation:GetLength()/globalstation:GetPlaybackRate()))
 		elseif a == GMOD_CHANNEL_PAUSED then
-			return "Paused", string.ToMinutesSeconds(math.Round(globalstation:GetTime()/globalstation:GetPlaybackRate())) .. " / ??:??"
+			return "Paused", string.ToMinutesSeconds(math.Round(globalstation:GetTime()/globalstation:GetPlaybackRate())) 
+			.. " / "
+			.. string.ToMinutesSeconds(math.Round(globalstation:GetLength()/globalstation:GetPlaybackRate()))
 		end
 			
 	end	
@@ -148,7 +151,7 @@ function ENT:Draw()
 	local ang = self:GetAngles()
 	local texttop,textbottom = self:GetTexts()
 	local curfont = "FRadio_ScreenFont"
-	
+	local color_dim
 
 	ang:RotateAroundAxis(ang:Right(),90)
 	ang:RotateAroundAxis(ang:Forward(),180)
@@ -158,64 +161,79 @@ function ENT:Draw()
 		local off = -60
 		local ee = -92
 		local textcenter = ee / 4.5
-
+		local playproxy = 0
 		local globalstation = globalstations[self:EntIndex()]
 		if IsValid(globalstation) then
 		local levels_l,levels_r 
+		color_dim =
+			HSVToColor((RealTime()*100)%360,1,0.4)
+		if globalstation:GetState() != GMOD_CHANNEL_PLAYING and globalstation:GetState() != GMOD_CHANNEL_PAUSED then
+			color_dim = color_black
+		end
+		playproxy = math.sin(RealTime()*6%360)*6
+
+		if globalstation:GetState() != GMOD_CHANNEL_PLAYING then
+			playproxy = 0
+		end
 		levels_l,levels_r = globalstation:GetLevel()
 
 		local moff = -off
 		globallevels[self:EntIndex()] = {moff*1.7*levels_r,moff*1.7*levels_l}
 	else
+
+		color_dim = black
 		globallevels[self:EntIndex()] =  {0,0}
+		
 	end
 
 
 
-
 	local x,y = globallevels[self:EntIndex()][1],globallevels[self:EntIndex()][2]
-
+	x,y = -x,-y
+	local bouncey = -off - 18
 	local color_rainbow = HSVToColor((RealTime()*100)%360,1,1)
+	if !color_dim then color_dim = Color(0,0,0) end
 
 		draw.RoundedBox(6,
 			ee, off,
 			146, -off*1.7,
-			color_black)
+			color_dim)
 
 
 		draw.RoundedBox(0,
-			textcenter+2, off,
+			textcenter+2, bouncey,
 			16, x,
 			color_rainbow)
 		draw.RoundedBox(0,
-			textcenter+6+16, off,
+			textcenter+6+16, bouncey,
 			16, x*0.75,
 			color_rainbow)
 		draw.RoundedBox(0,
-			textcenter+(5+16)*2, off,
+			textcenter+(5+16)*2, bouncey,
 			16, x*0.5,
 			color_rainbow)
 
 		draw.RoundedBox(0,
-			textcenter-18, off,
+			textcenter-18, bouncey,
 			16, y,
 			color_rainbow)
 
 		draw.RoundedBox(0,
-			textcenter-18 - 4 - 16, off,
+			textcenter-18 - 4 - 16, bouncey,
 			16, y*0.75,
 			color_rainbow)
 		draw.RoundedBox(0,
-			textcenter-18 - 4 - 16 - 4 - 16, off,
+			textcenter-18 - 4 - 16 - 4 - 16, bouncey,
 			16, y*0.5,
 			color_rainbow)
 
+		
 		draw.DrawText(
 		texttop,curfont,
-		textcenter,off/2.5 + (16-draw.GetFontHeight(curfont)),color_white,TEXT_ALIGN_CENTER)
+		textcenter,off/2.5 + (16-draw.GetFontHeight(curfont))+playproxy,color_white,TEXT_ALIGN_CENTER)
 		draw.DrawText(
 		textbottom,"FRadio_ScreenFont",
-		textcenter,off/2.5+14,color_white,TEXT_ALIGN_CENTER)
+		textcenter,off/2.5+14+playproxy,color_white,TEXT_ALIGN_CENTER)
 		
 		draw.DrawText(
 			"FRadio v1b",
@@ -255,9 +273,9 @@ function ENT:Initialize()
 
 	self:SetModel( self.Model )
 	self:SetModelScale(1.5)
-	self:PhysicsInit( SOLID_VPHYSICS )      -- Make us work with physics,
+	self:PhysicsInit( SOLID_BBOX )      -- Make us work with physics,
 	self:SetMoveType( MOVETYPE_VPHYSICS )   -- after all, gmod is a physics
-	self:SetSolid( SOLID_VPHYSICS )         -- Toolbox
+	self:SetSolid( SOLID_BBOX )         -- Toolbox
  	
         local phys = self:GetPhysicsObject()
 	if (phys:IsValid()) then
@@ -286,7 +304,9 @@ function ENT:Think()
     elseif CLIENT then
     	local globalstation = globalstations[self:EntIndex()]
     	local range = self.Range
-    	local vol = math.Clamp((range-self:GetPos():Distance(LocalPlayer():GetPos()))/range,0,1)
+    	local volmult = tonumber(self.Volume)
+    	if volmult == nil then volmult = 0 end
+    	local vol = math.Clamp((range-self:GetPos():Distance(LocalPlayer():GetPos()))/range,0,1)*math.Clamp(volmult,0,1)
  	if IsValid(globalstation) then
 
 
@@ -296,9 +316,6 @@ function ENT:Think()
 	
 
     	if IsValid(globalstation) then
-    		if !string.find(self.URL,".ogg",1,true) then
-    			globalstation:SetPos(self:GetPos())
-    			return end
     		globalstation:SetVolume(vol)
 
 		end
@@ -338,6 +355,12 @@ function ENT:Unpause()
 	end
 	
 end
+function ENT:SetRange(range)
+	for k,v in pairs(player.GetHumans()) do
+			v:SendLua([[Entity(]] .. self:EntIndex() .. [[):SetRange(]] .. tonumber(range) .. [[)]])
+	end
+end
+
 function ENT:OnRemove()
 	for k,v in pairs(player.GetHumans()) do
 			v:SendLua([[if IsValid(globalstations]] .. "[" .. self:EntIndex() .. "]" .. [[)then globalstations]] .. "[" .. self:EntIndex() .. "]" .. [[:Stop()end]])
