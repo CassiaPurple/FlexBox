@@ -9,7 +9,7 @@ ENT.Author			= "Ghost"
 ENT.Contact			= "Don't"
 ENT.Purpose			= "Exemplar material"
 ENT.Instructions	= "Use with care. Always handle with gloves."
-ENT.Model = "models/props/de_inferno/tv_monitor01.mdl"
+ENT.Model = "models/props/cs_office/tv_plasma.mdl"
 ENT.Spawnable = true
 ENT.AdminSpawnable = true
 ENT.Value = 10
@@ -23,7 +23,7 @@ if CLIENT then
 surface.CreateFont("FRadio_ScreenFont",
 	{
 		font = "Roboto",
-		size = 18,
+		size = 24,
 		weight = 700,
 		antialias = true,
 		outline = false
@@ -32,7 +32,7 @@ surface.CreateFont("FRadio_ScreenFont",
 surface.CreateFont("FRadio_ScreenFontSmall",
 	{
 		font = "Roboto",
-		size = 12,
+		size = 16,
 		weight = 100,
 		antialias = true,
 		outline = false
@@ -41,7 +41,7 @@ surface.CreateFont("FRadio_ScreenFontSmall",
 surface.CreateFont("FRadio_ScreenFontSmaller",
 	{
 		font = "Roboto",
-		size = 9,
+		size = 12,
 		weight = 100,
 		antialias = true,
 		outline = false
@@ -63,7 +63,11 @@ end
 
 
 function ENT:Play(url)
-self:Stop()
+if !globalstations then globalstations = {} 
+else
+	self:Stop()
+end
+
 self.URL = url
 
 sound.PlayURL(url,
@@ -71,6 +75,7 @@ sound.PlayURL(url,
 		function(station,_,error)
 			if IsValid(station) then
 
+				station:SetVolume(self.Volume)
 				station:Play()
 				
 				globalstations[self:EntIndex()] = station	
@@ -152,19 +157,22 @@ function ENT:Draw()
 	local texttop,textbottom = self:GetTexts()
 	local curfont = "FRadio_ScreenFont"
 	local color_dim
+	local fft = {}
 
 	ang:RotateAroundAxis(ang:Right(),90)
 	ang:RotateAroundAxis(ang:Forward(),180)
 	ang:RotateAroundAxis(ang:Up(),-90)
 	
-	cam.Start3D2D(pos+ang:Up()*10.467,ang,0.15)
-		local off = -60
+	cam.Start3D2D(pos+ang:Up()*9,ang,0.15)
+		local off = -350
+		local textheight = -500
 		local ee = -92
-		local textcenter = ee / 4.5
+		local textcenter = ee / 8
 		local playproxy = 0
+		if !globalstations then return end
 		local globalstation = globalstations[self:EntIndex()]
 		if IsValid(globalstation) then
-		local levels_l,levels_r 
+
 		color_dim =
 			HSVToColor((RealTime()*100)%360,1,0.4)
 		if globalstation:GetState() != GMOD_CHANNEL_PLAYING and globalstation:GetState() != GMOD_CHANNEL_PAUSED then
@@ -175,10 +183,16 @@ function ENT:Draw()
 		if globalstation:GetState() != GMOD_CHANNEL_PLAYING then
 			playproxy = 0
 		end
-		levels_l,levels_r = globalstation:GetLevel()
+
 
 		local moff = -off
-		globallevels[self:EntIndex()] = {moff*1.7*levels_r,moff*1.7*levels_l}
+		globalstation:FFT(fft,FFT_256)
+		
+		local xx = {}
+		for i = 1, #fft, 8 do
+			table.insert(xx,moff*2.5*fft[i])
+		end
+		globallevels[self:EntIndex()] = xx
 	else
 
 		color_dim = black
@@ -188,57 +202,50 @@ function ENT:Draw()
 
 
 
-	local x,y = globallevels[self:EntIndex()][1],globallevels[self:EntIndex()][2]
-	x,y = -x,-y
-	local bouncey = -off - 18
+	
+	
+	local bouncey = -30
+	local xorigin = textcenter-16-16-16
+	
 	local color_rainbow = HSVToColor((RealTime()*100)%360,1,1)
+	local glevel = globallevels[self:EntIndex()]
+	
 	if !color_dim then color_dim = Color(0,0,0) end
 
 		draw.RoundedBox(6,
-			ee, off,
-			146, -off*1.7,
+			ee*3, off,
+			552, 320,
 			color_dim)
 
 
+		for i = 1, (#glevel) do
+		if glevel[i] == nil then break end
 		draw.RoundedBox(0,
-			textcenter+2, bouncey,
-			16, x,
+			tonumber(xorigin*(i/3)), bouncey,
+			16, tonumber(-glevel[i]),
 			color_rainbow)
+		end
+		for i = (#glevel), 1, -1 do
+		if glevel[i] == nil then break end
 		draw.RoundedBox(0,
-			textcenter+6+16, bouncey,
-			16, x*0.75,
+			tonumber(xorigin*(-i/3)-18), bouncey,
+			16, tonumber(-glevel[i]),
 			color_rainbow)
-		draw.RoundedBox(0,
-			textcenter+(5+16)*2, bouncey,
-			16, x*0.5,
-			color_rainbow)
+		end
 
-		draw.RoundedBox(0,
-			textcenter-18, bouncey,
-			16, y,
-			color_rainbow)
-
-		draw.RoundedBox(0,
-			textcenter-18 - 4 - 16, bouncey,
-			16, y*0.75,
-			color_rainbow)
-		draw.RoundedBox(0,
-			textcenter-18 - 4 - 16 - 4 - 16, bouncey,
-			16, y*0.5,
-			color_rainbow)
 
 		
 		draw.DrawText(
 		texttop,curfont,
-		textcenter,off/2.5 + (16-draw.GetFontHeight(curfont))+playproxy,color_white,TEXT_ALIGN_CENTER)
+		textcenter,textheight/2.5 - 4 + (16-draw.GetFontHeight(curfont))+playproxy,color_white,TEXT_ALIGN_CENTER)
 		draw.DrawText(
 		textbottom,"FRadio_ScreenFont",
-		textcenter,off/2.5+14+playproxy,color_white,TEXT_ALIGN_CENTER)
+		textcenter,textheight/2.5+4+14+playproxy,color_white,TEXT_ALIGN_CENTER)
 		
 		draw.DrawText(
-			"FRadio v1b",
+			"FRadio v2",
 			"FRadio_ScreenFontSmall",
-			ee,off,color_white,TEXT_ALIGN_LEFT)
+			ee*3,off,color_white,TEXT_ALIGN_LEFT)
 
 	cam.End3D2D()
 
@@ -252,15 +259,14 @@ function ENT:Initialize()
 	
 	
  	if CLIENT then 
- 	if #ents.FindByClass("fb_audio_radio") > 1 then return end
+ 	
  	if globalstations then
  		for k,v in pairs(globalstations) do
  			if IsValid(v) then v:Stop() v = nil end
 		end
-		
-		
 	end
 	globalstations = {}
+	
  	if globallevels then
  		for k,v in pairs(globallevels) do
  			v = nil 
@@ -302,17 +308,12 @@ function ENT:Think()
     	self:SetModel(self.Model)
     end
     elseif CLIENT then
+    	if !globalstations then return end
     	local globalstation = globalstations[self:EntIndex()]
     	local range = self.Range
     	local volmult = tonumber(self.Volume)
     	if volmult == nil then volmult = 0 end
     	local vol = math.Clamp((range-self:GetPos():Distance(LocalPlayer():GetPos()))/range,0,1)*math.Clamp(volmult,0,1)
- 	if IsValid(globalstation) then
-
-
-	else
-		
-	end
 	
 
     	if IsValid(globalstation) then
