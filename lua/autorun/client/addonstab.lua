@@ -1,5 +1,5 @@
 fb_addons_list = {
-	model = {
+	workshop = {
 		sprops = {
 			id = "173482196",
 			name = "SProps",
@@ -24,6 +24,16 @@ fb_addons_list = {
 			id = "160250458",
 			name = "Wiremod",
 			desc = "Adds wiring, chips, logic and other stuff. SVN version updated more often.",
+		},
+		buu342base = {
+			id = "271689250",
+			name = "Buu342's Weapon Base",
+			desc = "Weapon base for CSGO weapons and others."
+		},
+		buucsgo = {
+			id = "239687689",
+			name = "Buu342's CSGO Weapons",
+			desc = "CSGO weapons, download for models."
 		},
 	},
 	svn = {
@@ -67,16 +77,16 @@ spawnmenu.AddCreationTab( "Addons", function()
 	text:SetText("These are addons that the server uses that aren't automatically downloaded due to their size. You can download them here.")
 	text:Dock(TOP)
 
-	local cat_model = vgui.Create("DCollapsibleCategory",scroll)
-	cat_model:Dock(TOP)
-	cat_model:SetLabel("Model Addons")
+	local cat_ws = vgui.Create("DCollapsibleCategory",scroll)
+	cat_ws:Dock(TOP)
+	cat_ws:SetLabel("Workshop Addons")
 
-	function cat_model:Paint(w,h)
+	function cat_ws:Paint(w,h)
 		draw.RoundedBox(4,0,0,w,20,Color(33,91,51))
 	end
 
-	for k,v in pairs(fb_addons_list.model) do
-		local addon_panel = vgui.Create("DPanel",cat_model)
+	for k,v in pairs(fb_addons_list.workshop) do
+		local addon_panel = vgui.Create("DPanel",cat_ws)
 		addon_panel:Dock(TOP)
 		addon_panel:DockMargin(0,5,0,0)
 		addon_panel:SetTall(100)
