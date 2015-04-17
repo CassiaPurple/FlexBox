@@ -17,6 +17,7 @@ ENT.URL = ""
 ENT.Range = 1500
 ENT.Volume = .7
 ENT.Levels = {0,0}
+ENT.Loop = false
 
 if CLIENT then
  
@@ -76,6 +77,7 @@ sound.PlayURL(url,
 			if IsValid(station) then
 
 				station:SetVolume(self.Volume)
+				if self.Loop then station:EnableLooping(true) end
 				station:Play()
 				
 				globalstations[self:EntIndex()] = station	
@@ -163,12 +165,13 @@ function ENT:Draw()
 	ang:RotateAroundAxis(ang:Forward(),180)
 	ang:RotateAroundAxis(ang:Up(),-90)
 	
-	cam.Start3D2D(pos+ang:Up()*9,ang,0.15)
+	cam.Start3D2D(pos+ang:Up()*9.2,ang,0.15)
 		local off = -350
 		local textheight = -500
 		local ee = -92
 		local textcenter = ee / 8
 		local playproxy = 0
+		local e,f = 0,0
 		if !globalstations then return end
 		local globalstation = globalstations[self:EntIndex()]
 		if IsValid(globalstation) then
@@ -190,9 +193,11 @@ function ENT:Draw()
 		
 		local xx = {}
 		for i = 1, #fft, 8 do
-			table.insert(xx,moff*2.5*fft[i])
+			table.insert(xx,24+(moff*2.5*fft[i]/1.15))
 		end
 		globallevels[self:EntIndex()] = xx
+		e,f = globalstation:GetLevel()
+
 	else
 
 		color_dim = black
@@ -209,6 +214,7 @@ function ENT:Draw()
 	
 	local color_rainbow = HSVToColor((RealTime()*100)%360,1,1)
 	local glevel = globallevels[self:EntIndex()]
+
 	
 	if !color_dim then color_dim = Color(0,0,0) end
 
@@ -220,16 +226,23 @@ function ENT:Draw()
 
 		for i = 1, (#glevel) do
 		if glevel[i] == nil then break end
+		if i == #glevel then continue end
 		draw.RoundedBox(0,
 			tonumber(xorigin*(i/3)), bouncey,
-			16, tonumber(-glevel[i]),
+			16, 
+			math.Clamp(
+			tonumber(-glevel[i]*e),
+			-220,0)
+			,
 			color_rainbow)
 		end
 		for i = (#glevel), 1, -1 do
+
 		if glevel[i] == nil then break end
+		if i == #glevel then continue end
 		draw.RoundedBox(0,
 			tonumber(xorigin*(-i/3)-18), bouncey,
-			16, tonumber(-glevel[i]),
+			16, tonumber(-glevel[i]*f),
 			color_rainbow)
 		end
 
