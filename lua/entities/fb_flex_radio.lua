@@ -227,116 +227,38 @@ function ENT:Draw()
 			color_black)
 
 
-		draw.RoundedBox(0,
-			ee, -off,
-			32, -x,
-			color_rainbow)
+		local glevel = globallevels[self:EntIndex()]
 
-		draw.RoundedBox(0,
-			ee+(32+10), -off,
-			32, -x*0.75,
-			color_rainbow)
+		local xorigin = textcenter-32-32-32
 
+		for i = 1, (#glevel) do
+		if glevel[i] == nil then break end
 		draw.RoundedBox(0,
-			ee+(32+10)*2, -off,
-			32, -x*0.5,
+			tonumber(xorigin*(i/3)), -off,
+			32, tonumber(-glevel[i]),
 			color_rainbow)
-
+		end
+		for i = (#glevel), 1, -1 do
+		if glevel[i] == nil then break end
 		draw.RoundedBox(0,
-			ee+(32+10)*3, -off,
-			32, -x*0.25,
+			tonumber(xorigin*(-i/3)-18), -off,
+			32, tonumber(-glevel[i]),
 			color_rainbow)
-
+		end
+		for i = 1, (#glevel) do
+		if glevel[i] == nil then break end
 		draw.RoundedBox(0,
-			ee+(32+10)*4, -off,
-			32, -x*0.5,
+			tonumber(xorigin*(-i/3)+84), -off,
+			32, tonumber(-glevel[i]),
 			color_rainbow)
-
+		end
+		for i = 1, (#glevel) do
+		if glevel[i] == nil then break end
 		draw.RoundedBox(0,
-			ee+(32+10)*5, -off,
-			32, -x*0.75,
+			tonumber(xorigin*(-i/3)-84-84-52), -off,
+			32, tonumber(-glevel[i]),
 			color_rainbow)
-
-		draw.RoundedBox(0,
-			ee+(32+10)*6, -off,
-			32, -x,
-			color_rainbow)
-
-		draw.RoundedBox(0,
-			ee+(32+10)*7, -off,
-			32, -x*0.75,
-			color_rainbow)
-
-		draw.RoundedBox(0,
-			ee+(32+10)*8, -off,
-			32, -x*0.5,
-			color_rainbow)
-
-		draw.RoundedBox(0,
-			ee+(32+10)*9, -off,
-			32, -x*0.25,
-			color_rainbow)
-
-		draw.RoundedBox(0,
-			ee+(32+10)*10, -off,
-			32, -x*0.5,
-			color_rainbow)
-
-		draw.RoundedBox(0,
-			ee+(32+10)*11, -off,
-			32, -x*0.75,
-			color_rainbow)
-
-		draw.RoundedBox(0,
-			ee+(32+10)*12, -off,
-			32, -x,
-			color_rainbow)
-
-		draw.RoundedBox(0,
-			ee+(32+10)*13, -off,
-			32, -x*0.75,
-			color_rainbow)
-
-		draw.RoundedBox(0,
-			ee+(32+10)*14, -off,
-			32, -x*0.5,
-			color_rainbow)
-
-		draw.RoundedBox(0,
-			ee+(32+10)*15, -off,
-			32, -x*0.25,
-			color_rainbow)
-
-		draw.RoundedBox(0,
-			ee+(32+10)*16, -off,
-			32, -x*0.5,
-			color_rainbow)
-
-		draw.RoundedBox(0,
-			ee+(32+10)*17, -off,
-			32, -x*0.75,
-			color_rainbow)
-
-		draw.RoundedBox(0,
-			ee+(32+10)*18, -off,
-			32, -x,
-			color_rainbow)
-
-		draw.RoundedBox(0,
-			ee+(32+10)*19, -off,
-			32, -x*0.75,
-			color_rainbow)
-
-		draw.RoundedBox(0,
-			ee+(32+10)*20, -off,
-			32, -x*0.5,
-			color_rainbow)
-
-		draw.RoundedBox(0,
-			ee+(32+10)*21, -off,
-			32, -x*0.25,
-			color_rainbow)
-
+		end
 		--[[draw.DrawText(
 		texttop,curfont,
 		textcenter,off/2.5 + (16-draw.GetFontHeight(curfont)),color_flex_green,TEXT_ALIGN_CENTER)
