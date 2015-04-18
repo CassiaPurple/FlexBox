@@ -162,8 +162,7 @@ if SoundCloud.Detect(url) then
 
 			local url
 			local name = m.Title
-			print(m.URL)
-
+			
 			if m.URL then url = m.URL .. "/stream?client_id=3775c0743f360c022a2fed672e33909d" else url = nil end
 
 if url then
@@ -181,11 +180,11 @@ sound.PlayURL(url,
 				globalstations[self:EntIndex()] = station	
 			end
 			if error != nil then
-			print(error)
+			MsgC(Color(255,0,0),"[GhRadio]",Color(255,255,255)," Returned an error when trying to play the requested audio:\n",Color(255,0,0),error.."\n")
 			end
 	end)
 else
-	print"SoundCloud failed D:"
+	MsgC(Color(255,0,0),"[GhRadio]",Color(255,255,255)," SoundCloud failed to load properly??")
 end
 	end)	
 return
@@ -203,7 +202,7 @@ sound.PlayURL(url,
 				globalstations[self:EntIndex()] = station	
 			end
 			if error != nil then
-			print(error)
+			MsgC(Color(255,0,0),"[GhRadio]",Color(255,255,255)," Returned an error when trying to play the requested audio:\n",Color(255,0,0),error.."\n")
 			end
 	end)
 
