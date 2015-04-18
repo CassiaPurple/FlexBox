@@ -1,4 +1,70 @@
 AddCSLuaFile()
+
+-- Soundcloud code
+local SoundCloud = {}
+
+function SoundCloud.Detect(uri, useJW)
+    local m = playxlib.FindMatch(uri:gsub("%?.*$", ""), {
+        "^http[s]?://soundcloud.com/(.+)/(.+)$",
+		"^http[s]?://www.soundcloud.com/(.+)/(.+)$",
+		"^http[s]?://api.soundcloud.com/tracks/(%d)+",
+    })
+	if(m) then
+		if m[1] and m[2] then
+			return "http://soundcloud.com/"..m[1].."/"..m[2]
+		elseif(m[1]) then
+			return "http://api.soundcloud.com/tracks/"..m[1]
+		end
+	else
+		return
+	end
+end
+
+function SoundCloud.GetPlayer(uri, useJW)
+	local url = uri
+	return {
+		["Handler"] = "SoundCloud",
+		["URI"] = url,
+		["ResumeSupported"] = true,
+		["LowFramerate"] = false,
+		["QueryMetadata"] = function(callback, failCallback)
+			SoundCloud.QueryMetadata(uri, callback, failCallback)
+		end,
+		["HandlerArgs"] = {
+			["VolumeMul"] = 0.1,
+		},
+	}
+end
+
+function SoundCloud.QueryMetadata(uri, callback, failCallback)
+    local url = "http://api.soundcloud.com/resolve.json?url="..uri.."&client_id=3775c0743f360c022a2fed672e33909d"
+
+    http.Fetch(url,function(content,size)
+		local dec = util.JSONToTable(content)
+		if content == NULL or not dec then
+			if failCallback then failCallback("Failed to get Metadata") end
+			return
+		end
+		if(dec and dec["title"] ~= nil) then
+			local title = dec["title"]
+			local desc = dec["description"]
+			local viewerCount = dec["playback_count"]
+			--local tags = playxlib.ParseTags(dec["tag_list"])
+			callback({
+				["Duration"] = math.floor(tonumber(dec["duration"])/1000),
+				["URL"] = dec["uri"],
+				["URL2"] = uri,
+				["Title"] = title,
+				["Description"] = desc,
+				["Tags"] = tags,
+				["ViewerCount"] = viewerCount,
+			})
+		end
+	end)
+end
+
+--End soundcloud code
+
 --easylua.StartEntity("fb_audio_ghradio")
 
 ENT.Type = "anim"
@@ -19,6 +85,7 @@ ENT.Volume = .7
 ENT.Levels = {0,0}
 ENT.Loop = false
 ENT.StartingURL = nil
+ENT.Version = "2"
 
 if CLIENT then
  
@@ -85,6 +152,43 @@ end
 
 self.URL = url
 
+if SoundCloud.Detect(url) then
+
+	
+	SoundCloud.QueryMetadata(url,
+		function(m)  
+
+			local url
+			local name = m.Title
+			print(m.URL)
+
+			if m.URL then url = m.URL .. "/stream?client_id=3775c0743f360c022a2fed672e33909d" else url = nil end
+
+if url then
+	self.SoundCloud = true
+	self.SoundCloudTitle = name
+sound.PlayURL(url,
+		"noblock",
+		function(station,_,error)
+			if IsValid(station) then
+
+				station:SetVolume(self.Volume)
+				if self.Loop then station:EnableLooping(true) end
+				station:Play()
+				
+				globalstations[self:EntIndex()] = station	
+			end
+			if error != nil then
+			print(error)
+			end
+	end)
+else
+	print"SoundCloud failed D:"
+end
+	end)	
+return
+end
+self.SoundCloud = false
 sound.PlayURL(url,
 		"noblock",
 		function(station,_,error)
@@ -132,6 +236,13 @@ function ENT:Stop()
 	
 end
  
+function ENT:SetLoop(bool)
+	bool = tobool(bool)
+
+	self.Loop = bool
+
+end
+
 function ENT:GetTexts()
 
 	local globalstation = globalstations[self:EntIndex()]
@@ -166,8 +277,13 @@ function ENT:GetSongName(  ) --stolen x3
 
 
 	if IsValid(globalstation) then
-		FixedName = tostring( globalstation:GetFileName() )
-		
+		local ll = globalstation:GetFileName()
+	if !self.SoundCloud then
+		FixedName = tostring( ll )
+	else
+		return self.SoundCloudTitle
+	end
+	
 		
 		if globalstation:GetState() == GMOD_CHANNEL_STOPPED then
 			return ""
@@ -179,24 +295,38 @@ function ENT:GetSongName(  ) --stolen x3
 		FixedName = string.Replace( FixedName, "%20", " " )
 		FixedName = string.Replace( FixedName, "%28", "(" )
 		FixedName = string.Replace( FixedName, "%29", ")" )
+		FixedName = string.Replace( FixedName, "%5b", "[" )
+		FixedName = string.Replace( FixedName, "%5d", "]" )
+
 
 		FixedName = string.GetFileFromFilename( FixedName )
 
 		FixedName = string.JavascriptSafe( FixedName )
 
-		FixedName = FixedName:gsub("(%l)(%w*)", function(a,b) return string.upper(a)..b end)
-		NEnd = string.find( FixedName , ".Mp3" ,0 , false )
+		
+		NEnd = string.find( FixedName , "%.[mp3|Mp3|mP3|MP3]" )
 		if NEnd == nil then
-		NEnd = string.find( FixedName , ".Ogg" ,0 , false )
+		NEnd = string.find( FixedName , "%.[ogg|Ogg|oGg|ogG|OGg|oGG|OGG]" )
 		end
 		if NEnd == nil then
-		NEnd = string.find( FixedName , ".Wav" ,0 , false )
+		NEnd = string.find( FixedName , "%.[wav|Wav|wAv|waV|WAv|wAV|WAV]" )
 		end
 		if NEnd == nil then
-		NEnd = string.find( FixedName , ".M4A" ,0 , false )
+		NEnd = string.find( FixedName , "%.[m4a|M4a|m4A|M4A]")
+		end
+		if NEnd == nil then
+		NEnd = string.find( FixedName ,"%.[mp4|Mp4|mP4|MP4]" )
 		end
 
-		
+		if NEnd == nil then
+		NEnd = #FixedName
+		end
+	
+		FixedName = FixedName:gsub("(%l)(%w*)", function(a,b) return string.upper(a)..b end)
+		FixedName = string.Replace( FixedName, "Ytpmv", "YTPMV")
+		FixedName = string.Replace( FixedName, "Ytp", "YTP")
+
+
 		FixedName = string.sub( FixedName , 0 , NEnd - 1 )
 
 		end
@@ -204,6 +334,8 @@ function ENT:GetSongName(  ) --stolen x3
   	end
 		return FixedName
 end
+
+
 
 --[[---------------------------------------------------------
    Name: Draw
@@ -322,7 +454,7 @@ function ENT:Draw()
 		textcenter,textheight/2.5+4+14+playproxy,color_white,TEXT_ALIGN_CENTER)
 		
 		draw.DrawText(
-			"GhRadio",
+			"GhRadio v" .. self.Version,
 			"GhRadio_ScreenFontSmall",
 			ee*3,off,color_white,TEXT_ALIGN_LEFT)
 
@@ -392,9 +524,9 @@ function ENT:Initialize()
 
 	self:SetModel( self.Model )
 	self:SetModelScale(1.5)
-	self:PhysicsInit( SOLID_BBOX )      -- Make us work with physics,
+	self:PhysicsInit( SOLID_OBB )      -- Make us work with physics,
 	self:SetMoveType( MOVETYPE_VPHYSICS )   -- after all, gmod is a physics
-	self:SetSolid( SOLID_BBOX )         -- Toolbox
+	self:SetSolid( SOLID_OBB )         -- Toolbox
  	
         local phys = self:GetPhysicsObject()
 	if (phys:IsValid()) then
@@ -431,6 +563,7 @@ function ENT:Think()
 
     	if IsValid(globalstation) then
     		globalstation:SetVolume(vol)
+    		globalstation:EnableLooping(self.Loop)
 
 		end
 
@@ -481,6 +614,14 @@ function ENT:OnRemove()
 	end	
 end
 
+function ENT:SetLoop(bool)
+	bool = tobool(bool)
+
+	for k,v in pairs(player.GetHumans()) do
+			v:SendLua([[Entity(]] .. self:EntIndex() .. [[):SetLoop(]] .. (bool and "1" or "0") .. [[)]])
+	end	
 
 end
---easylua.EndEntity()
+
+end
+easylua.EndEntity()
