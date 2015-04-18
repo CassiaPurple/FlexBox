@@ -18,7 +18,7 @@ ENT.Range = 1500
 ENT.Volume = .7
 ENT.Levels = {0,0}
 ENT.Loop = false
-ENT.StartingURL = ""
+ENT.StartingURL = nil
 
 if CLIENT then
  
