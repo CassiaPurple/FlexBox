@@ -1,8 +1,7 @@
 AddCSLuaFile()
 
 -- Soundcloud code
--- Taken from PlayX, thank you to all the PlayX devs!
-
+--Taken from PlayX. Thanks PlayX team and Xerasin
 
 local SoundCloud = {}
 
@@ -44,6 +43,7 @@ function SoundCloud.QueryMetadata(uri, callback, failCallback)
 
     http.Fetch(url,function(content,size)
 		local dec = util.JSONToTable(content)
+		
 		if content == NULL or not dec then
 			if failCallback then failCallback("Failed to get Metadata") end
 			return
@@ -52,6 +52,7 @@ function SoundCloud.QueryMetadata(uri, callback, failCallback)
 			local title = dec["title"]
 			local desc = dec["description"]
 			local viewerCount = dec["playback_count"]
+			local author = dec["user"]
 			--local tags = playxlib.ParseTags(dec["tag_list"])
 			callback({
 				["Duration"] = math.floor(tonumber(dec["duration"])/1000),
@@ -61,6 +62,7 @@ function SoundCloud.QueryMetadata(uri, callback, failCallback)
 				["Description"] = desc,
 				["Tags"] = tags,
 				["ViewerCount"] = viewerCount,
+				["Author"] = author,
 			})
 		end
 	end)
@@ -88,7 +90,7 @@ ENT.Volume = .7
 ENT.Levels = {0,0}
 ENT.Loop = false
 ENT.StartingURL = nil
-ENT.Version = "2"
+ENT.Version = "2.1"
 
 if CLIENT then
  
@@ -185,13 +187,15 @@ if SoundCloud.Detect(url) then
 
 			local url
 			local name = m.Title
-			print(m.URL)
+			local author = m.Author
 
 			if m.URL then url = m.URL .. "/stream?client_id=3775c0743f360c022a2fed672e33909d" else url = nil end
 
 if url then
 	self.SoundCloud = true
 	self.SoundCloudTitle = name
+	self.SoundCloudAuthor = author["username"]
+
 sound.PlayURL(url,
 		"noblock",
 		function(station,_,error)
@@ -270,26 +274,71 @@ function ENT:SetLoop(bool)
 end
 
 function ENT:GetTexts()
+	local function addzerotonumber(n)
+
+		n = tonumber(n)
+		if n == nil then n = 0 end
+		if n < 10 then
+			return "0" .. n
+		else
+			return tostring(n)
+		end
+
+	end
+
+
 
 	local globalstation = globalstations[self:EntIndex()]
 	if type(globalstation) != "IGModAudioChannel" then return "Not playing", "--:-- / --:--" end
+
 	if !IsValid(globalstation) then
 		return "Not playing", "--:-- / --:--"
 	end
 	if IsValid(globalstation) then
 		local a = globalstation:GetState()
+		local time = globalstation:GetTime()/globalstation:GetPlaybackRate()
+		local length = globalstation:GetLength()/globalstation:GetPlaybackRate()
+		local time_t = string.FormattedTime(time)
+		local length_t = string.FormattedTime(length)
+		local hideradio = false
+
+		if length_t.h == 0 then
+			time = tostring(addzerotonumber(time_t.m)) .. ":"
+			.. tostring(addzerotonumber(time_t.s))
+			if length >= 0 then
+			length = tostring(addzerotonumber(length_t.m)) .. ":"
+			.. tostring(addzerotonumber(length_t.s))
+			else
+				length = "??:??"
+			end
+		else
+			time = tostring(addzerotonumber(time_t.h)) .. ":"
+			.. tostring(addzerotonumber(time_t.m)).. ":"	
+			.. tostring(addzerotonumber(time_t.s))	
+			if length >= 0 then
+
+			length = tostring(addzerotonumber(length_t.h)) .. ":" ..
+			tostring(addzerotonumber(length_t.m)) .. ":"
+			.. tostring(addzerotonumber(length_t.s))
+			else
+				time = "-audio stream-"
+				length = ""
+				hideradio = true
+			end
+		end		
+
 		if a == GMOD_CHANNEL_STALLED then
 			return "Buffering...", "--:-- / --:--"
 		elseif a == GMOD_CHANNEL_STOPPED then
 			return "Not playing", "--:-- / --:--"
 		elseif a == GMOD_CHANNEL_PLAYING then
-			return "Playing", string.ToMinutesSeconds(math.Round(globalstation:GetTime()/globalstation:GetPlaybackRate())) 
+			return "Playing", (!hideradio and time
 			.. " / "
-			.. string.ToMinutesSeconds(math.Round(globalstation:GetLength()/globalstation:GetPlaybackRate()))
+			.. length or time)
 		elseif a == GMOD_CHANNEL_PAUSED then
-			return "Paused", string.ToMinutesSeconds(math.Round(globalstation:GetTime()/globalstation:GetPlaybackRate())) 
+			return "Paused", (!hideradio and time
 			.. " / "
-			.. string.ToMinutesSeconds(math.Round(globalstation:GetLength()/globalstation:GetPlaybackRate()))
+			.. length or time)
 		end
 			
 	end	
@@ -316,7 +365,10 @@ function ENT:GetSongName(  ) --stolen x3
 			return ""
 		end
 		if isstring(FixedName) then
-
+		if FixedName:find(".fm") then 
+			FixedName = string.TrimLeft(FixedName,"http://")
+			FixedName = string.TrimLeft(FixedName,"https://")
+			return FixedName end
 		FixedName = string.Replace( FixedName, "_", " " )
 
 		FixedName = string.Replace( FixedName, "%20", " " )
@@ -352,7 +404,7 @@ function ENT:GetSongName(  ) --stolen x3
 		FixedName = FixedName:gsub("(%l)(%w*)", function(a,b) return string.upper(a)..b end)
 		FixedName = string.Replace( FixedName, "Ytpmv", "YTPMV")
 		FixedName = string.Replace( FixedName, "Ytp", "YTP")
-
+		FixedName = string.Replace( FixedName, "With", "with")
 
 		FixedName = string.sub( FixedName , 0 , NEnd - 1 )
 
@@ -362,7 +414,33 @@ function ENT:GetSongName(  ) --stolen x3
 		return FixedName
 end
 
+function ENT:GetAuthor()
 
+
+	local globalstation = globalstations[self:EntIndex()]
+
+
+
+
+	if IsValid(globalstation) then
+
+		if globalstation:GetState() == GMOD_CHANNEL_STOPPED 
+			or globalstation:GetState() == GMOD_CHANNEL_STALLED
+		then
+			return ""
+		end
+else
+
+	
+	return ""
+
+end
+
+	local a = self.SoundCloudAuthor
+	if a == nil then a = "" end
+	return a
+
+end
 
 --[[---------------------------------------------------------
    Name: Draw
@@ -380,6 +458,12 @@ function ENT:Draw()
 	local color_dim = Color(0,0,0)
 	local color_dimmer = Color(255,255,255,100)
 	local fft = {}
+
+	local function wave(e)
+
+		return -math.abs(math.sin(CurTime()*(e/5)%16)*310)
+
+	end
 
 	local scrfont = ghfonts.scrfont
 	local verfont = ghfonts.scrfont
@@ -406,14 +490,15 @@ function ENT:Draw()
 		if IsValid(globalstation) then
 
 		color_dim =
-			HSVToColor((RealTime()*100)%360,1,0.4)
-		color_dimmer = HSVToColor((RealTime()*100)%360,0.2,1)
+			HSVToColor((RealTime()*100)%360,1,0.2)
+		color_dimmer = Color(255,255,255,100)
+
 		if globalstation:GetState() != GMOD_CHANNEL_PLAYING and globalstation:GetState() != GMOD_CHANNEL_PAUSED then
 			color_dim = color_black
 			color_dimmer = Color(255,255,255,100)
 		end
 		playproxy = math.sin(RealTime()*6%360)*6
-		playproxy2 = math.sin(RealTime()*12%360)*4
+		--playproxy2 = math.sin(RealTime()*12%360)*4
 
 		if globalstation:GetState() != GMOD_CHANNEL_PLAYING then
 			playproxy = 0
@@ -458,6 +543,44 @@ function ENT:Draw()
 			color_dim)
 
 
+local a = true
+if IsValid(globalstation) then
+	if globalstation:GetState() == GMOD_CHANNEL_STOPPED then 
+		a= true 
+	else 
+		a= false 
+	end
+end
+if a then
+
+		glevel = {wave(1),wave(2),wave(3),wave(4),wave(5),
+		wave(6),wave(7),wave(8),wave(9),wave(10),wave(11),
+		wave(12),wave(13),wave(14),wave(15),wave(16)}
+		for i = 1, 15 do
+		if glevel[i] == nil then break end
+		if i == #glevel - 1 then continue end
+		draw.RoundedBox(0,
+			tonumber(xorigin*(-i/3)-18), bouncey,
+			16, 			glevel[i],
+			color_rainbow)
+
+		end
+		glevel = table.Reverse(glevel)
+
+		for i = 1, (#glevel) do
+
+		if glevel[i] == nil then break end
+		if i == #glevel or i == #glevel - 1 then continue end
+		draw.RoundedBox(0,
+			tonumber(xorigin*(-i/3)-18) + xorigin*4.65, bouncey,
+			16, 			glevel[i],
+			color_rainbow)
+		end
+
+
+end
+
+
 		for i = 1, (#glevel) do
 		if glevel[i] == nil then break end
 		if i == #glevel then continue end
@@ -494,7 +617,7 @@ function ENT:Draw()
 		draw.DrawText(
 			"GhRadio v" .. self.Version,
 			verfont,
-			ee*3,off+320 - draw.GetFontHeight(verfont) + 7,
+			ee*3,off+320 - draw.GetFontHeight(verfont)+2,
 			color_dimmer,TEXT_ALIGN_LEFT)
 
 		local songname = self:GetSongName()
@@ -504,21 +627,41 @@ function ENT:Draw()
 			self:GetSongName(),
 			scrfont,
 			textcenter+playproxy2,off,color_white,TEXT_ALIGN_CENTER)
+			draw.DrawText(
+			self:GetAuthor(),
+			scrfontsm,
+			textcenter+playproxy2
+			,off+draw.GetFontHeight(scrfont),color_white,TEXT_ALIGN_CENTER)
 		elseif snl > 29 and snl < 48 then
 			draw.DrawText(
 			self:GetSongName(),
 			scrfontsl,
 			textcenter+playproxy2,off,color_white,TEXT_ALIGN_CENTER)
+			draw.DrawText(
+			self:GetAuthor(),
+			scrfontsm,
+			textcenter+playproxy2
+			,off+draw.GetFontHeight(scrfontsl),color_white,TEXT_ALIGN_CENTER)
 		elseif snl > 48 and snl < 60 then
 			draw.DrawText(
 			self:GetSongName(),
 			scrfontsm,
 			textcenter+playproxy2,off,color_white,TEXT_ALIGN_CENTER)
+			draw.DrawText(
+			self:GetAuthor(),
+			scrfontxs,
+			textcenter+playproxy2
+			,off+draw.GetFontHeight(scrfontsm),color_white,TEXT_ALIGN_CENTER)
 		else
 			draw.DrawText(
 			self:GetSongName(),
 			scrfontxs,
-			textcenter+playproxy2,off,color_white,TEXT_ALIGN_CENTER)			
+			textcenter+playproxy2,off,color_white,TEXT_ALIGN_CENTER)
+			draw.DrawText(
+			self:GetAuthor(),
+			scrfontxs,
+			textcenter+playproxy2
+			,off+draw.GetFontHeight(scrfontxs),color_white,TEXT_ALIGN_CENTER)			
 
 		end
 
@@ -598,7 +741,7 @@ function ENT:Think()
     	local volmult = tonumber(self.Volume)
     	if volmult == nil then volmult = 0 end
     	local vol = math.Clamp((range-self:GetPos():Distance(LocalPlayer():GetPos()))/range,0,1)*math.Clamp(volmult,0,1)
-	
+		if !self.SoundCloud then self.SoundCloudAuthor = "" end
 
     	if IsValid(globalstation) then
     		globalstation:SetVolume(vol)
