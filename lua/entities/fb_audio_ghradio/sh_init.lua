@@ -3,6 +3,7 @@ AddCSLuaFile()
 -- Soundcloud code
 -- Taken from PlayX, thank you to all the PlayX devs!
 
+
 local SoundCloud = {}
 
 function SoundCloud.Detect(uri, useJW)
@@ -91,6 +92,8 @@ ENT.Version = "2"
 
 if CLIENT then
  
+local ghfonts = {}
+
 surface.CreateFont("GhRadio_ScreenFont",
 	{
 		font = "Roboto",
@@ -101,36 +104,56 @@ surface.CreateFont("GhRadio_ScreenFont",
 	}
 )
 
+ghfonts.scrfont = "GhRadio_ScreenFont"
+
 surface.CreateFont("GhRadio_ScreenFontSlight",
 	{
 		font = "Roboto",
 		size = 20,
+		weight = 500,
+		antialias = true,
+		outline = false
+	}
+)
+
+ghfonts.scrfontssl = "GhRadio_ScreenFontSlight"
+
+surface.CreateFont("GhRadio_VersionFont",
+	{
+		font = "Roboto",
+		size = 18,
 		weight = 700,
 		antialias = true,
 		outline = false
 	}
 )
 
+
+ghfonts.verfont = "GhRadio_VersionFont"
+
 surface.CreateFont("GhRadio_ScreenFontSmall",
 	{
 		font = "Roboto",
 		size = 16,
-		weight = 100,
+		weight = 400,
 		antialias = true,
 		outline = false
 	}
 )
 
+ghfonts.scrfontsm = "GhRadio_ScreenFontSmall"
 
 surface.CreateFont("GhRadio_ScreenFontSmaller",
 	{
 		font = "Roboto",
 		size = 12,
-		weight = 100,
+		weight = 300,
 		antialias = true,
 		outline = false
 	}
 )
+
+ghfonts.scrfontxs = "GhRadio_ScreenFontSmaller"
  
 
 function ENT:SetRange(range)
@@ -162,7 +185,8 @@ if SoundCloud.Detect(url) then
 
 			local url
 			local name = m.Title
-			
+			print(m.URL)
+
 			if m.URL then url = m.URL .. "/stream?client_id=3775c0743f360c022a2fed672e33909d" else url = nil end
 
 if url then
@@ -186,7 +210,8 @@ sound.PlayURL(url,
 else
 	MsgC(Color(255,0,0),"[GhRadio]",Color(255,255,255)," SoundCloud failed to load properly??")
 end
-	end)	
+
+		end)	
 return
 end
 self.SoundCloud = false
@@ -282,6 +307,7 @@ function ENT:GetSongName(  ) --stolen x3
 	if !self.SoundCloud then
 		FixedName = tostring( ll )
 	else
+		if globalstation:GetState() == GMOD_CHANNEL_STOPPED then self.SoundCloudTitle = "" end
 		return self.SoundCloudTitle
 	end
 	
@@ -351,9 +377,16 @@ function ENT:Draw()
 	local pos = self:GetPos()
 	local ang = self:GetAngles()
 	local texttop,textbottom = self:GetTexts()
-	local curfont = "GhRadio_ScreenFont"
-	local color_dim
+	local color_dim = Color(0,0,0)
+	local color_dimmer = Color(255,255,255,100)
 	local fft = {}
+
+	local scrfont = ghfonts.scrfont
+	local verfont = ghfonts.scrfont
+	local scrfontsl = ghfonts.scrfontssl
+	local scrfontsm = ghfonts.scrfontsm
+	local scrfontxs = ghfonts.scrfontxs
+	local verfont = ghfonts.verfont
 
 	ang:RotateAroundAxis(ang:Right(),90)
 	ang:RotateAroundAxis(ang:Forward(),180)
@@ -367,14 +400,17 @@ function ENT:Draw()
 		local playproxy = 0
 		local playproxy2 = 0
 		local e,f = 0,0
+
 		if !globalstations then return end
 		local globalstation = globalstations[self:EntIndex()]
 		if IsValid(globalstation) then
 
 		color_dim =
 			HSVToColor((RealTime()*100)%360,1,0.4)
+		color_dimmer = HSVToColor((RealTime()*100)%360,0.2,1)
 		if globalstation:GetState() != GMOD_CHANNEL_PLAYING and globalstation:GetState() != GMOD_CHANNEL_PAUSED then
 			color_dim = color_black
+			color_dimmer = Color(255,255,255,100)
 		end
 		playproxy = math.sin(RealTime()*6%360)*6
 		playproxy2 = math.sin(RealTime()*12%360)*4
@@ -413,6 +449,7 @@ function ENT:Draw()
 	local glevel = globallevels[self:EntIndex()]
 
 	
+	
 	if !color_dim then color_dim = Color(0,0,0) end
 
 		draw.RoundedBox(6,
@@ -448,38 +485,39 @@ function ENT:Draw()
 
 		
 		draw.DrawText(
-		texttop,curfont,
-		textcenter,textheight/2.5 - 4 + (16-draw.GetFontHeight(curfont))+playproxy,color_white,TEXT_ALIGN_CENTER)
+		texttop,scrfont,
+		textcenter,textheight/2.5 - 4 + (16-draw.GetFontHeight(scrfont))+playproxy,color_white,TEXT_ALIGN_CENTER)
 		draw.DrawText(
-		textbottom,"GhRadio_ScreenFont",
+		textbottom,scrfont,
 		textcenter,textheight/2.5+4+14+playproxy,color_white,TEXT_ALIGN_CENTER)
 		
 		draw.DrawText(
 			"GhRadio v" .. self.Version,
-			"GhRadio_ScreenFontSmall",
-			ee*3,off,color_white,TEXT_ALIGN_LEFT)
+			verfont,
+			ee*3,off+320 - draw.GetFontHeight(verfont) + 7,
+			color_dimmer,TEXT_ALIGN_LEFT)
 
 		local songname = self:GetSongName()
 		local snl = #songname
 		if snl < 30 then
 			draw.DrawText(
 			self:GetSongName(),
-			"GhRadio_ScreenFont",
+			scrfont,
 			textcenter+playproxy2,off,color_white,TEXT_ALIGN_CENTER)
 		elseif snl > 29 and snl < 48 then
 			draw.DrawText(
 			self:GetSongName(),
-			"GhRadio_ScreenFontSlight",
+			scrfontsl,
 			textcenter+playproxy2,off,color_white,TEXT_ALIGN_CENTER)
 		elseif snl > 48 and snl < 60 then
 			draw.DrawText(
 			self:GetSongName(),
-			"GhRadio_ScreenFontSmall",
+			scrfontsm,
 			textcenter+playproxy2,off,color_white,TEXT_ALIGN_CENTER)
 		else
 			draw.DrawText(
 			self:GetSongName(),
-			"GhRadio_ScreenFontSmaller",
+			scrfontxs,
 			textcenter+playproxy2,off,color_white,TEXT_ALIGN_CENTER)			
 
 		end
@@ -625,4 +663,4 @@ function ENT:SetLoop(bool)
 end
 
 end
-easylua.EndEntity()
+--easylua.EndEntity()
