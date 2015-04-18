@@ -1,6 +1,8 @@
 AddCSLuaFile()
 
 -- Soundcloud code
+-- Taken from PlayX, thank you to all the PlayX devs!
+
 local SoundCloud = {}
 
 function SoundCloud.Detect(uri, useJW)
