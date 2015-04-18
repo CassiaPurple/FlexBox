@@ -1,10 +1,10 @@
 AddCSLuaFile()
-easylua.StartEntity("fb_audio_radio")
+--easylua.StartEntity("fb_audio_ghradio")
 
 ENT.Type = "anim"
 ENT.Base = "base_gmodentity"
 ENT.Category = "Audio"
-ENT.PrintName		= "Radio"
+ENT.PrintName		= "GhRadio"
 ENT.Author			= "Ghost"
 ENT.Contact			= "Don't"
 ENT.Purpose			= "Exemplar material"
@@ -18,10 +18,11 @@ ENT.Range = 1500
 ENT.Volume = .7
 ENT.Levels = {0,0}
 ENT.Loop = false
+ENT.StartingURL = ""
 
 if CLIENT then
  
-surface.CreateFont("FRadio_ScreenFont",
+surface.CreateFont("GhRadio_ScreenFont",
 	{
 		font = "Roboto",
 		size = 24,
@@ -30,7 +31,18 @@ surface.CreateFont("FRadio_ScreenFont",
 		outline = false
 	}
 )
-surface.CreateFont("FRadio_ScreenFontSmall",
+
+surface.CreateFont("GhRadio_ScreenFontSlight",
+	{
+		font = "Roboto",
+		size = 20,
+		weight = 700,
+		antialias = true,
+		outline = false
+	}
+)
+
+surface.CreateFont("GhRadio_ScreenFontSmall",
 	{
 		font = "Roboto",
 		size = 16,
@@ -39,7 +51,9 @@ surface.CreateFont("FRadio_ScreenFontSmall",
 		outline = false
 	}
 )
-surface.CreateFont("FRadio_ScreenFontSmaller",
+
+
+surface.CreateFont("GhRadio_ScreenFontSmaller",
 	{
 		font = "Roboto",
 		size = 12,
@@ -144,6 +158,53 @@ function ENT:GetTexts()
 	end	
 end
 
+function ENT:GetSongName(  ) --stolen x3
+
+	local FixedName = ""
+
+	local globalstation = globalstations[self:EntIndex()]
+
+
+	if IsValid(globalstation) then
+		FixedName = tostring( globalstation:GetFileName() )
+		
+		
+		if globalstation:GetState() == GMOD_CHANNEL_STOPPED then
+			return ""
+		end
+		if isstring(FixedName) then
+
+		FixedName = string.Replace( FixedName, "_", " " )
+
+		FixedName = string.Replace( FixedName, "%20", " " )
+		FixedName = string.Replace( FixedName, "%28", "(" )
+		FixedName = string.Replace( FixedName, "%29", ")" )
+
+		FixedName = string.GetFileFromFilename( FixedName )
+
+		FixedName = string.JavascriptSafe( FixedName )
+
+		FixedName = FixedName:gsub("(%l)(%w*)", function(a,b) return string.upper(a)..b end)
+		NEnd = string.find( FixedName , ".Mp3" ,0 , false )
+		if NEnd == nil then
+		NEnd = string.find( FixedName , ".Ogg" ,0 , false )
+		end
+		if NEnd == nil then
+		NEnd = string.find( FixedName , ".Wav" ,0 , false )
+		end
+		if NEnd == nil then
+		NEnd = string.find( FixedName , ".M4A" ,0 , false )
+		end
+
+		
+		FixedName = string.sub( FixedName , 0 , NEnd - 1 )
+
+		end
+--  		FixedName = string.Trim(FixedName, ".mp3")
+  	end
+		return FixedName
+end
+
 --[[---------------------------------------------------------
    Name: Draw
    Purpose: Draw the model in-game.
@@ -157,7 +218,7 @@ function ENT:Draw()
 	local pos = self:GetPos()
 	local ang = self:GetAngles()
 	local texttop,textbottom = self:GetTexts()
-	local curfont = "FRadio_ScreenFont"
+	local curfont = "GhRadio_ScreenFont"
 	local color_dim
 	local fft = {}
 
@@ -165,12 +226,13 @@ function ENT:Draw()
 	ang:RotateAroundAxis(ang:Forward(),180)
 	ang:RotateAroundAxis(ang:Up(),-90)
 	
-	cam.Start3D2D(pos+ang:Up()*9.2,ang,0.15)
+	cam.Start3D2D(pos+ang:Up()*9.15,ang,0.15)
 		local off = -350
 		local textheight = -500
 		local ee = -92
 		local textcenter = ee / 8
 		local playproxy = 0
+		local playproxy2 = 0
 		local e,f = 0,0
 		if !globalstations then return end
 		local globalstation = globalstations[self:EntIndex()]
@@ -182,9 +244,11 @@ function ENT:Draw()
 			color_dim = color_black
 		end
 		playproxy = math.sin(RealTime()*6%360)*6
+		playproxy2 = math.sin(RealTime()*12%360)*4
 
 		if globalstation:GetState() != GMOD_CHANNEL_PLAYING then
 			playproxy = 0
+			playproxy2 = 0
 		end
 
 
@@ -193,11 +257,11 @@ function ENT:Draw()
 		
 		local xx = {}
 		for i = 1, #fft, 8 do
-			table.insert(xx,24+(moff*2.5*fft[i]/1.15))
+			table.insert(xx,4+(moff*2.5*fft[i]/1.15))
 		end
 		globallevels[self:EntIndex()] = xx
 		e,f = globalstation:GetLevel()
-
+		e,f = e*2,f*2
 	else
 
 		color_dim = black
@@ -211,7 +275,7 @@ function ENT:Draw()
 	
 	local bouncey = -30
 	local xorigin = textcenter-16-16-16
-	
+	local textcenter = textcenter+10
 	local color_rainbow = HSVToColor((RealTime()*100)%360,1,1)
 	local glevel = globallevels[self:EntIndex()]
 
@@ -232,17 +296,19 @@ function ENT:Draw()
 			16, 
 			math.Clamp(
 			tonumber(-glevel[i]*e),
-			-220,0)
+			-310,0)
 			,
 			color_rainbow)
 		end
 		for i = (#glevel), 1, -1 do
 
 		if glevel[i] == nil then break end
-		if i == #glevel then continue end
+		if i == #glevel or i == #glevel - 1 then continue end
 		draw.RoundedBox(0,
 			tonumber(xorigin*(-i/3)-18), bouncey,
-			16, tonumber(-glevel[i]*f),
+			16, 			math.Clamp(
+			tonumber(-glevel[i]*f),
+			-310,0),
 			color_rainbow)
 		end
 
@@ -252,13 +318,39 @@ function ENT:Draw()
 		texttop,curfont,
 		textcenter,textheight/2.5 - 4 + (16-draw.GetFontHeight(curfont))+playproxy,color_white,TEXT_ALIGN_CENTER)
 		draw.DrawText(
-		textbottom,"FRadio_ScreenFont",
+		textbottom,"GhRadio_ScreenFont",
 		textcenter,textheight/2.5+4+14+playproxy,color_white,TEXT_ALIGN_CENTER)
 		
 		draw.DrawText(
-			"FRadio v2",
-			"FRadio_ScreenFontSmall",
+			"GhRadio",
+			"GhRadio_ScreenFontSmall",
 			ee*3,off,color_white,TEXT_ALIGN_LEFT)
+
+		local songname = self:GetSongName()
+		local snl = #songname
+		if snl < 30 then
+			draw.DrawText(
+			self:GetSongName(),
+			"GhRadio_ScreenFont",
+			textcenter+playproxy2,off,color_white,TEXT_ALIGN_CENTER)
+		elseif snl > 29 and snl < 48 then
+			draw.DrawText(
+			self:GetSongName(),
+			"GhRadio_ScreenFontSlight",
+			textcenter+playproxy2,off,color_white,TEXT_ALIGN_CENTER)
+		elseif snl > 48 and snl < 60 then
+			draw.DrawText(
+			self:GetSongName(),
+			"GhRadio_ScreenFontSmall",
+			textcenter+playproxy2,off,color_white,TEXT_ALIGN_CENTER)
+		else
+			draw.DrawText(
+			self:GetSongName(),
+			"GhRadio_ScreenFontSmaller",
+			textcenter+playproxy2,off,color_white,TEXT_ALIGN_CENTER)			
+
+		end
+
 
 	cam.End3D2D()
 
@@ -288,6 +380,14 @@ function ENT:Initialize()
 		
 	end
 	globallevels = {}	
+	if self.StartingURL then
+		local lel = tostring(self.StartingURL)
+		timer.Simple(1,function() 
+			self:Play(lel) 
+			self.StartingURL = nil
+		end)
+	end
+
  elseif SERVER then
 
 	self:SetModel( self.Model )
@@ -383,4 +483,4 @@ end
 
 
 end
-easylua.EndEntity()
+--easylua.EndEntity()
