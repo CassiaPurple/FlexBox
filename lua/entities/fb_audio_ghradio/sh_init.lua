@@ -93,6 +93,7 @@ ENT.Levels = {0,0}
 ENT.Loop = false
 ENT.StartingURL = nil
 ENT.Version = "2.1"
+ENT.Global = false
 
 if CLIENT then
  
@@ -271,6 +272,11 @@ function ENT:Stop()
 		globalstation = nil
 	end	
 	
+end
+
+function ENT:SetGlobal(bool)
+	bool = tobool(bool)
+	self.Global = bool
 end
  
 function ENT:SetLoop(bool)
@@ -773,7 +779,11 @@ function ENT:Think()
 		if !self.SoundCloud then self.SoundCloudAuthor = "" end
 
     	if IsValid(globalstation) then
+    		if !self.Global then
     		globalstation:SetVolume(vol)
+    	else
+    		globalstation:SetVolume(volmult)
+    		end
     		globalstation:EnableLooping(self.Loop)
 
 		end
@@ -825,6 +835,15 @@ function ENT:OnRemove()
 	end	
 end
 
+function ENT:SetGlobal(bool)
+	bool = tobool(bool)
+
+	for k,v in pairs(player.GetHumans()) do
+			v:SendLua([[Entity(]] .. self:EntIndex() .. [[):SetGlobal(]] .. (bool and "1" or "0") .. [[)]])
+	end	
+
+end
+
 function ENT:SetLoop(bool)
 	bool = tobool(bool)
 
@@ -837,6 +856,8 @@ end
 end
 --easylua.EndEntity()
 
+
+
 MsgC(Color(255,0,0),"[GhRadio] ",Color(255,255,255),"Ran code\n")
 
 end
@@ -845,12 +866,8 @@ code()
 
 if SERVER then
 	hook.Add("PlayerInitialSpawn","_________",function(p)
-		
-		timer.Simple(15,function()
-		if !IsValid(p) then return end
 		p:SendLua[[globalstations = {} globallevels = {}]]
 		code()
-		end)
 
 end)
 end
