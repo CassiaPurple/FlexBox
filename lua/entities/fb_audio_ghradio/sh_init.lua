@@ -1,5 +1,7 @@
 AddCSLuaFile()
 
+local function code()
+
 -- Soundcloud code
 --Taken from PlayX. Thanks PlayX team and Xerasin
 
@@ -177,7 +179,12 @@ else
 	self:Stop()
 end
 
+if !url:find"http://" and !url:find"https://" then
+	url = ("http://" .. url)
+end
+url = string.Trim(url," ")
 self.URL = url
+
 
 if SoundCloud.Detect(url) then
 
@@ -359,6 +366,13 @@ function ENT:GetSongName(  ) --stolen x3
 		if globalstation:GetState() == GMOD_CHANNEL_STOPPED then self.SoundCloudTitle = "" end
 		return self.SoundCloudTitle
 	end
+
+		if globalstation:GetLength() < 0 then
+			FixedName = tostring(ll)
+			FixedName = string.Replace( FixedName, "http://", "" )
+FixedName = string.Replace( FixedName, "https://", "" )
+			return FixedName
+		end
 	
 		
 		if globalstation:GetState() == GMOD_CHANNEL_STOPPED then
@@ -376,6 +390,7 @@ function ENT:GetSongName(  ) --stolen x3
 		FixedName = string.Replace( FixedName, "%29", ")" )
 		FixedName = string.Replace( FixedName, "%5b", "[" )
 		FixedName = string.Replace( FixedName, "%5d", "]" )
+		FixedName = string.Replace( FixedName, "%26", "&" )
 
 
 		FixedName = string.GetFileFromFilename( FixedName )
@@ -401,10 +416,14 @@ function ENT:GetSongName(  ) --stolen x3
 		NEnd = #FixedName
 		end
 	
-		FixedName = FixedName:gsub("(%l)(%w*)", function(a,b) return string.upper(a)..b end)
+		FixedName = FixedName:gsub("(%l)(%w*)", function(a,b) 
+				return string.upper(a)..b end)
+
+
+
 		FixedName = string.Replace( FixedName, "Ytpmv", "YTPMV")
 		FixedName = string.Replace( FixedName, "Ytp", "YTP")
-		FixedName = string.Replace( FixedName, "With", "with")
+		
 
 		FixedName = string.sub( FixedName , 0 , NEnd - 1 )
 
@@ -455,13 +474,14 @@ function ENT:Draw()
 	local pos = self:GetPos()
 	local ang = self:GetAngles()
 	local texttop,textbottom = self:GetTexts()
-	local color_dim = Color(0,0,0)
+	local color_dim 
+	color_dim = Color(0,0,0)
 	local color_dimmer = Color(255,255,255,100)
 	local fft = {}
 
 	local function wave(e)
 
-		return -math.abs(math.sin(CurTime()*(e/5)%16)*310)
+		return -math.abs(math.sin(CurTime()*(e/5)%16)*320)
 
 	end
 
@@ -518,7 +538,7 @@ function ENT:Draw()
 		e,f = e*2,f*2
 	else
 
-		color_dim = black
+		color_dim = color_black
 		globallevels[self:EntIndex()] =  {0,0}
 		
 	end
@@ -535,12 +555,21 @@ function ENT:Draw()
 
 	
 	
-	if !color_dim then color_dim = Color(0,0,0) end
+	if color_dim != nil then  
+
 
 		draw.RoundedBox(6,
 			ee*3, off,
 			552, 320,
 			color_dim)
+
+	else
+
+		draw.RoundedBox(6,
+			ee*3, off,
+			552, 320,
+			color_black)
+	end
 
 
 local a = true
@@ -807,3 +836,21 @@ end
 
 end
 --easylua.EndEntity()
+
+MsgC(Color(255,0,0),"[GhRadio] ",Color(255,255,255),"Ran code\n")
+
+end
+
+code()
+
+if SERVER then
+	hook.Add("PlayerInitialSpawn","_________",function(p)
+		
+		timer.Simple(15,function()
+		if !IsValid(p) then return end
+		p:SendLua[[globalstations = {} globallevels = {}]]
+		code()
+		end)
+
+end)
+end
