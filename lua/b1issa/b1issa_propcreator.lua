@@ -576,4 +576,6 @@ MakePropsFromTable(proptable_windows,true)
 
 end
 
-timer.Simple(15,function() ISSA() reinit_issa() end)
+ISSA()
+
+timer.Create("REINIT_ISSA_FFS",0.5,10,function() reinit_issa() end)
